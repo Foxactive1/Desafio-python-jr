@@ -1,120 +1,117 @@
 """
-Operações CRUD para certificados
+Operações CRUD para voluntários
 """
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from datetime import date
+
 import models, schemas, database
 
 
-def get_certificate(db: database.FakeDatabase, certificate_id: int) -> Optional[models.Certificate]:
-    """Obtém um certificado pelo ID"""
-    certificate = db.get_certificate(certificate_id)
-    if certificate and not certificate.is_deleted:
-        return certificate
+def get_volunteer(db: database.FakeDatabase, volunteer_id: int) -> Optional[models.Volunteer]:
+    """Obtém um voluntário pelo ID"""
+    volunteer = db.get_volunteer(volunteer_id)
+    if volunteer and not volunteer.is_deleted:
+        return volunteer
     return None
 
 
-def get_certificates(
+def get_volunteers(
     db: database.FakeDatabase,
     skip: int = 0,
     limit: int = 100,
     **filters
-) -> List[models.Certificate]:
-    """Lista certificados com filtros"""
-    all_certificates = db.get_all_certificates()
+) -> List[models.Volunteer]:
+    """Lista voluntários com filtros"""
+    all_volunteers = db.get_all_volunteers()
     
     # Aplicar filtros
-    filtered_certificates = []
+    filtered_volunteers = []
     
-    for cert in all_certificates:
-        # Ignorar certificados excluídos
-        if cert.is_deleted:
+    for vol in all_volunteers:
+        # Ignorar voluntários excluídos
+        if vol.is_deleted:
             continue
         
         # Aplicar filtros
-        if filters.get("user_id") and cert.user_id != filters["user_id"]:
+        if filters.get("status") and vol.status != filters["status"]:
             continue
         
-        if filters.get("course_id") and cert.course_id != filters["course_id"]:
+        if filters.get("cargo_pretendido") and vol.cargo_pretendido != filters["cargo_pretendido"]:
             continue
         
-        if filters.get("status") and cert.status != filters["status"]:
+        if filters.get("disponibilidade") and vol.disponibilidade != filters["disponibilidade"]:
             continue
         
-        if filters.get("issue_date_start") and cert.issue_date < filters["issue_date_start"]:
-            continue
-        
-        if filters.get("issue_date_end") and cert.issue_date > filters["issue_date_end"]:
-            continue
-        
-        if filters.get("expiration_date_start") and cert.expiration_date < filters["expiration_date_start"]:
-            continue
-        
-        if filters.get("expiration_date_end") and cert.expiration_date > filters["expiration_date_end"]:
-            continue
-        
-        filtered_certificates.append(cert)
+        filtered_volunteers.append(vol)
     
     # Aplicar paginação
-    return filtered_certificates[skip:skip + limit]
+    return filtered_volunteers[skip:skip + limit]
 
 
-def create_certificate(
+def create_volunteer(
     db: database.FakeDatabase,
-    certificate: schemas.CertificateCreate
-) -> models.Certificate:
-    """Cria um novo certificado"""
+    volunteer: schemas.VolunteerCreate
+) -> models.Volunteer:
+    """Cria um novo voluntário"""
+    # Verificar se email já existe
+    if db.email_exists(volunteer.email):
+        raise ValueError("Email já cadastrado")
+    
     # Converter schema para modelo
-    cert_model = models.Certificate(
+    vol_model = models.Volunteer(
         id=0,  # Será definido pelo banco de dados
-        user_id=certificate.user_id,
-        username=certificate.username,
-        course_id=certificate.course_id,
-        course_name=certificate.course_name,
-        issue_date=certificate.issue_date,
-        expiration_date=certificate.expiration_date,
-        status=certificate.status,
+        nome=volunteer.nome,
+        email=volunteer.email,
+        telefone=volunteer.telefone,
+        cargo_pretendido=volunteer.cargo_pretendido,
+        disponibilidade=volunteer.disponibilidade,
+        status=volunteer.status,
+        data_inscricao=date.today(),  # Data atual automaticamente
         is_deleted=False
     )
     
     # Salvar no banco de dados
-    return db.add_certificate(cert_model)
+    return db.add_volunteer(vol_model)
 
 
-def update_certificate(
+def update_volunteer(
     db: database.FakeDatabase,
-    certificate_id: int,
-    certificate_update: schemas.CertificateUpdate
-) -> Optional[models.Certificate]:
-    """Atualiza um certificado"""
-    # Verificar se o certificado existe
-    existing_cert = get_certificate(db, certificate_id)
-    if not existing_cert:
+    volunteer_id: int,
+    volunteer_update: schemas.VolunteerUpdate
+) -> Optional[models.Volunteer]:
+    """Atualiza um voluntário"""
+    # Verificar se o voluntário existe
+    existing_vol = get_volunteer(db, volunteer_id)
+    if not existing_vol:
         return None
     
+    # Verificar se o novo email já existe (para outro voluntário)
+    if volunteer_update.email and db.email_exists(volunteer_update.email, exclude_id=volunteer_id):
+        raise ValueError("Email já cadastrado")
+    
     # Preparar dados para atualização
-    update_data = certificate_update.dict(exclude_unset=True)
+    update_data = volunteer_update.dict(exclude_unset=True)
     
     # Atualizar no banco de dados
-    return db.update_certificate(certificate_id, **update_data)
+    return db.update_volunteer(volunteer_id, **update_data)
 
 
-def delete_certificate(db: database.FakeDatabase, certificate_id: int) -> bool:
-    """Exclui um certificado (soft delete)"""
-    # Verificar se o certificado existe
-    existing_cert = get_certificate(db, certificate_id)
-    if not existing_cert:
+def delete_volunteer(db: database.FakeDatabase, volunteer_id: int) -> bool:
+    """Exclui um voluntário (soft delete)"""
+    # Verificar se o voluntário existe
+    existing_vol = get_volunteer(db, volunteer_id)
+    if not existing_vol:
         return False
     
     # Marcar como excluído
-    return db.delete_certificate(certificate_id)
+    return db.delete_volunteer(volunteer_id)
 
 
-def restore_certificate(db: database.FakeDatabase, certificate_id: int) -> Optional[models.Certificate]:
-    """Restaura um certificado excluído"""
-    certificate = db.get_certificate(certificate_id)
-    if not certificate:
+def restore_volunteer(db: database.FakeDatabase, volunteer_id: int) -> Optional[models.Volunteer]:
+    """Restaura um voluntário excluído"""
+    volunteer = db.get_volunteer(volunteer_id)
+    if not volunteer:
         return None
     
-    # Restaurar certificado
-    return db.restore_certificate(certificate_id)
+    # Restaurar voluntário
+    return db.restore_volunteer(volunteer_id)

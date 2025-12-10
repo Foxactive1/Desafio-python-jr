@@ -1,66 +1,65 @@
 """
-Schemas Pydantic para validação e serialização
+Schemas Pydantic para validação e serialização de Voluntários
 """
 from pydantic import BaseModel, validator, Field
 from typing import Optional
 from datetime import date
-from datetime import datetime
 
-from models import CertificateStatus
+from models import Disponibilidade, StatusVoluntario
 
 
-class CertificateBase(BaseModel):
-    """Schema base para certificado"""
-    user_id: int = Field(..., gt=0, description="ID do usuário")
-    username: str = Field(..., min_length=1, max_length=100, description="Nome do usuário")
-    course_id: int = Field(..., gt=0, description="ID do curso")
-    course_name: str = Field(..., min_length=1, max_length=200, description="Nome do curso")
-    issue_date: date = Field(..., description="Data de emissão")
-    expiration_date: date = Field(..., description="Data de expiração")
-    status: CertificateStatus = Field(..., description="Status do certificado")
+class VolunteerBase(BaseModel):
+    """Schema base para voluntário"""
+    nome: str = Field(..., min_length=1, max_length=100, description="Nome do voluntário")
+    email: str = Field(..., min_length=3, max_length=100, description="Email do voluntário")
+    telefone: str = Field(..., min_length=10, max_length=20, description="Telefone do voluntário")
+    cargo_pretendido: str = Field(..., min_length=1, max_length=100, description="Cargo pretendido")
+    disponibilidade: Disponibilidade = Field(..., description="Disponibilidade do voluntário")
+    status: StatusVoluntario = Field(default=StatusVoluntario.PENDENTE, description="Status do voluntário")
     
-    @validator('expiration_date')
-    def validate_expiration_date(cls, v, values):
-        """Valida se a data de expiração é após a data de emissão"""
-        if 'issue_date' in values and v <= values['issue_date']:
-            raise ValueError('A data de expiração deve ser posterior à data de emissão')
-        return v
+    @validator('email')
+    def validate_email(cls, v):
+        """Valida o formato do email"""
+        if '@' not in v:
+            raise ValueError('Email inválido')
+        return v.strip().lower()
     
-    @validator('username')
-    def validate_username(cls, v):
-        """Valida o nome de usuário"""
+    @validator('nome')
+    def validate_nome(cls, v):
+        """Valida o nome"""
         if not v.strip():
-            raise ValueError('O nome de usuário não pode estar vazio')
+            raise ValueError('O nome não pode estar vazio')
         return v.strip()
 
 
-class CertificateCreate(CertificateBase):
-    """Schema para criação de certificado"""
+class VolunteerCreate(VolunteerBase):
+    """Schema para criação de voluntário"""
     pass
 
 
-class CertificateUpdate(BaseModel):
-    """Schema para atualização de certificado"""
-    user_id: Optional[int] = Field(None, gt=0, description="ID do usuário")
-    username: Optional[str] = Field(None, min_length=1, max_length=100, description="Nome do usuário")
-    course_id: Optional[int] = Field(None, gt=0, description="ID do curso")
-    course_name: Optional[str] = Field(None, min_length=1, max_length=200, description="Nome do curso")
-    issue_date: Optional[date] = Field(None, description="Data de emissão")
-    expiration_date: Optional[date] = Field(None, description="Data de expiração")
-    status: Optional[CertificateStatus] = Field(None, description="Status do certificado")
+class VolunteerUpdate(BaseModel):
+    """Schema para atualização de voluntário"""
+    nome: Optional[str] = Field(None, min_length=1, max_length=100, description="Nome do voluntário")
+    email: Optional[str] = Field(None, min_length=3, max_length=100, description="Email do voluntário")
+    telefone: Optional[str] = Field(None, min_length=10, max_length=20, description="Telefone do voluntário")
+    cargo_pretendido: Optional[str] = Field(None, min_length=1, max_length=100, description="Cargo pretendido")
+    disponibilidade: Optional[Disponibilidade] = Field(None, description="Disponibilidade do voluntário")
+    status: Optional[StatusVoluntario] = Field(None, description="Status do voluntário")
     
-    @validator('expiration_date')
-    def validate_expiration_date(cls, v, values):
-        """Valida se a data de expiração é após a data de emissão"""
-        if v and 'issue_date' in values and values['issue_date']:
-            if v <= values['issue_date']:
-                raise ValueError('A data de expiração deve ser posterior à data de emissão')
+    @validator('email')
+    def validate_email(cls, v):
+        """Valida o formato do email"""
+        if v is not None:
+            if '@' not in v:
+                raise ValueError('Email inválido')
+            return v.strip().lower()
         return v
 
 
-class Certificate(CertificateBase):
-    """Schema para resposta de certificado"""
+class Volunteer(VolunteerBase):
+    """Schema para resposta de voluntário"""
     id: int
+    data_inscricao: date
     is_deleted: bool
     
     class Config:
@@ -68,5 +67,4 @@ class Certificate(CertificateBase):
         from_attributes = True
         json_encoders = {
             date: lambda v: v.isoformat(),
-            datetime: lambda v: v.isoformat()
         }
