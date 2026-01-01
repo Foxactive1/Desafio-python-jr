@@ -1,1 +1,115 @@
-#
+<!DOCTYPE html><html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestão de Voluntários</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6"><div class="max-w-7xl mx-auto space-y-6">
+  <h1 class="text-3xl font-bold">🚀 CRUD – Gestão de Voluntários</h1>  <!-- Formulário -->  <div class="bg-white p-6 rounded-2xl shadow">
+    <h2 class="text-xl font-semibold mb-4">Cadastrar / Editar Voluntário</h2>
+    <form id="formVoluntario" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <input type="hidden" id="voluntarioId" />
+      <input id="nome" placeholder="Nome" class="border p-2 rounded" required />
+      <input id="email" placeholder="Email" class="border p-2 rounded" required />
+      <input id="telefone" placeholder="Telefone" class="border p-2 rounded" />
+      <input id="cargo" placeholder="Cargo pretendido" class="border p-2 rounded" />
+      <select id="disponibilidade" class="border p-2 rounded">
+        <option value="manha">Manhã</option>
+        <option value="tarde">Tarde</option>
+        <option value="noite">Noite</option>
+        <option value="fim_de_semana">Fim de semana</option>
+      </select>
+      <select id="status" class="border p-2 rounded">
+        <option value="ativo">Ativo</option>
+        <option value="pendente">Pendente</option>
+        <option value="inativo">Inativo</option>
+      </select>
+      <button class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-600 hover:to-blue-600 text-white font-semibold rounded-xl px-6 py-3 col-span-full shadow-lg transition-all duration-200">
+        💾 Salvar Voluntário
+      </button>
+    </form>
+  </div>  <!-- Tabela -->  <div class="overflow-x-auto bg-white rounded-2xl shadow">
+    <table class="min-w-full text-sm">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-3">Nome</th>
+          <th class="p-3">Email</th>
+          <th class="p-3">Cargo</th>
+          <th class="p-3">Status</th>
+          <th class="p-3">Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabela"></tbody>
+    </table>
+  </div>
+</div><script>
+const API = 'http://localhost:8000/voluntarios/';
+
+async function carregar() {
+  const res = await fetch(API);
+  const dados = await res.json();
+  const tabela = document.getElementById('tabela');
+  tabela.innerHTML = '';
+
+  dados.filter(v => !v.is_deleted).forEach(v => {
+    tabela.innerHTML += `
+      <tr class="border-t">
+        <td class="p-3">${v.nome}</td>
+        <td class="p-3">${v.email}</td>
+        <td class="p-3">${v.cargo_pretendido}</td>
+        <td class="p-3">${v.status}</td>
+        <td class="p-3 space-x-2">
+          <button onclick='editar(${JSON.stringify(v)})' class="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition font-medium">✏️ Editar</button>
+          <button onclick='excluir(${v.id})' class="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition font-medium">🗑️ Excluir</button>
+        </td>
+      </tr>`;
+  });
+}
+
+function editar(v) {
+  voluntarioId.value = v.id;
+  nome.value = v.nome;
+  email.value = v.email;
+  telefone.value = v.telefone;
+  cargo.value = v.cargo_pretendido;
+  disponibilidade.value = v.disponibilidade;
+  status.value = v.status;
+}
+
+async function excluir(id) {
+  if (!confirm('Confirma exclusão?')) return;
+  await fetch(API + id, { method: 'DELETE' });
+  carregar();
+}
+
+formVoluntario.onsubmit = async e => {
+  e.preventDefault();
+  const id = voluntarioId.value;
+
+  const payload = {
+    nome: nome.value,
+    email: email.value,
+    telefone: telefone.value,
+    cargo_pretendido: cargo.value,
+    disponibilidade: disponibilidade.value,
+    status: status.value
+  };
+
+  const options = {
+    method: id ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  };
+
+  const url = id ? API + id : API;
+  await fetch(url, options);
+
+  formVoluntario.reset();
+  voluntarioId.value = '';
+  carregar();
+};
+
+carregar();
+</script></body>
+</html>
