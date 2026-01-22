@@ -4,14 +4,14 @@ Fake Database - Simulação de banco de dados em memória para Voluntários
 from datetime import date
 from typing import Dict, List
 
-from models import Volunteer, Disponibilidade, StatusVoluntario
+from models import VolunteerInDB, Disponibilidade, StatusVoluntario
 
 
 class FakeDatabase:
     """Banco de dados fake em memória para voluntários"""
     
     def __init__(self):
-        self._volunteers: Dict[int, Volunteer] = {}
+        self._volunteers: Dict[int, VolunteerInDB] = {}
         self._next_id = 1
         self._initialize_data()
     
@@ -76,7 +76,7 @@ class FakeDatabase:
         ]
         
         for data in initial_data:
-            volunteer = Volunteer(**data)
+            volunteer = VolunteerInDB(**data)
             self._volunteers[volunteer.id] = volunteer
     
     def _get_next_id(self) -> int:
@@ -85,21 +85,21 @@ class FakeDatabase:
         self._next_id += 1
         return current_id
     
-    def get_all_volunteers(self) -> List[Volunteer]:
+    def get_all_volunteers(self) -> List[VolunteerInDB]:
         """Retorna todos os voluntários"""
         return list(self._volunteers.values())
     
-    def get_volunteer(self, volunteer_id: int) -> Volunteer:
+    def get_volunteer(self, volunteer_id: int) -> VolunteerInDB:
         """Obtém um voluntário pelo ID"""
         return self._volunteers.get(volunteer_id)
     
-    def add_volunteer(self, volunteer: Volunteer) -> Volunteer:
+    def add_volunteer(self, volunteer: VolunteerInDB) -> VolunteerInDB:
         """Adiciona um novo voluntário"""
         volunteer.id = self._get_next_id()
         self._volunteers[volunteer.id] = volunteer
         return volunteer
     
-    def update_volunteer(self, volunteer_id: int, **kwargs) -> Volunteer:
+    def update_volunteer(self, volunteer_id: int, **kwargs) -> VolunteerInDB:
         """Atualiza um voluntário"""
         if volunteer_id not in self._volunteers:
             return None
@@ -120,7 +120,7 @@ class FakeDatabase:
         volunteer.is_deleted = True
         return True
     
-    def restore_volunteer(self, volunteer_id: int) -> Volunteer:
+    def restore_volunteer(self, volunteer_id: int) -> VolunteerInDB:
         """Restaura um voluntário excluído"""
         if volunteer_id not in self._volunteers:
             return None
