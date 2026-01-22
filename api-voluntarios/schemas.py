@@ -1,7 +1,7 @@
 """
 Schemas Pydantic para validação e serialização de Voluntários
 """
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import date
 
@@ -17,15 +17,17 @@ class VolunteerBase(BaseModel):
     disponibilidade: Disponibilidade = Field(..., description="Disponibilidade do voluntário")
     status: StatusVoluntario = Field(default=StatusVoluntario.PENDENTE, description="Status do voluntário")
     
-    @validator('email')
-    def validate_email(cls, v):
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
         """Valida o formato do email"""
         if '@' not in v:
             raise ValueError('Email inválido')
         return v.strip().lower()
     
-    @validator('nome')
-    def validate_nome(cls, v):
+    @field_validator('nome')
+    @classmethod
+    def validate_nome(cls, v: str) -> str:
         """Valida o nome"""
         if not v.strip():
             raise ValueError('O nome não pode estar vazio')
@@ -46,8 +48,9 @@ class VolunteerUpdate(BaseModel):
     disponibilidade: Optional[Disponibilidade] = Field(None, description="Disponibilidade do voluntário")
     status: Optional[StatusVoluntario] = Field(None, description="Status do voluntário")
     
-    @validator('email')
-    def validate_email(cls, v):
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
         """Valida o formato do email"""
         if v is not None:
             if '@' not in v:
@@ -65,6 +68,12 @@ class Volunteer(VolunteerBase):
     class Config:
         """Configurações do Pydantic"""
         from_attributes = True
-        json_encoders = {
-            date: lambda v: v.isoformat(),
-        }
+    
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        """Override para lidar com serialização de date"""
+        if hasattr(obj, 'data_inscricao') and isinstance(obj.data_inscricao, date):
+            obj_dict = obj.to_dict() if hasattr(obj, 'to_dict') else obj.__dict__
+            obj_dict['data_inscricao'] = obj.data_inscricao.isoformat()
+            return super().model_validate(obj_dict, *args, **kwargs)
+        return super().model_validate(obj, *args, **kwargs)
