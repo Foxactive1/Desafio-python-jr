@@ -4,14 +4,15 @@ Operações CRUD para voluntários
 from typing import List, Optional
 from datetime import date
 
-import models, schemas, database
+from models import VolunteerInDB, VolunteerModel
+import schemas, database
 
 
-def get_volunteer(db: database.FakeDatabase, volunteer_id: int) -> Optional[models.Volunteer]:
-    """Obtém um voluntário pelo ID"""
+def get_volunteer(db: database.FakeDatabase, volunteer_id: int) -> Optional[VolunteerModel]:
+    """Obtém um voluntário pelo ID e converte para Pydantic model"""
     volunteer = db.get_volunteer(volunteer_id)
     if volunteer and not volunteer.is_deleted:
-        return volunteer
+        return volunteer.to_model()
     return None
 
 
@@ -20,8 +21,8 @@ def get_volunteers(
     skip: int = 0,
     limit: int = 100,
     **filters
-) -> List[models.Volunteer]:
-    """Lista voluntários com filtros"""
+) -> List[VolunteerModel]:
+    """Lista voluntários com filtros e converte para Pydantic models"""
     all_volunteers = db.get_all_volunteers()
     
     # Aplicar filtros
@@ -42,7 +43,7 @@ def get_volunteers(
         if filters.get("disponibilidade") and vol.disponibilidade != filters["disponibilidade"]:
             continue
         
-        filtered_volunteers.append(vol)
+        filtered_volunteers.append(vol.to_model())
     
     # Aplicar paginação
     return filtered_volunteers[skip:skip + limit]
@@ -51,14 +52,14 @@ def get_volunteers(
 def create_volunteer(
     db: database.FakeDatabase,
     volunteer: schemas.VolunteerCreate
-) -> models.Volunteer:
+) -> VolunteerModel:
     """Cria um novo voluntário"""
     # Verificar se email já existe
     if db.email_exists(volunteer.email):
         raise ValueError("Email já cadastrado")
     
-    # Converter schema para modelo
-    vol_model = models.Volunteer(
+    # Converter schema para modelo de domínio
+    vol_domain = VolunteerInDB(
         id=0,  # Será definido pelo banco de dados
         nome=volunteer.nome,
         email=volunteer.email,
@@ -71,18 +72,21 @@ def create_volunteer(
     )
     
     # Salvar no banco de dados
-    return db.add_volunteer(vol_model)
+    saved_volunteer = db.add_volunteer(vol_domain)
+    
+    # Retornar como Pydantic model
+    return saved_volunteer.to_model()
 
 
 def update_volunteer(
     db: database.FakeDatabase,
     volunteer_id: int,
     volunteer_update: schemas.VolunteerUpdate
-) -> Optional[models.Volunteer]:
+) -> Optional[VolunteerModel]:
     """Atualiza um voluntário"""
     # Verificar se o voluntário existe
-    existing_vol = get_volunteer(db, volunteer_id)
-    if not existing_vol:
+    existing_vol = db.get_volunteer(volunteer_id)
+    if not existing_vol or existing_vol.is_deleted:
         return None
     
     # Verificar se o novo email já existe (para outro voluntário)
@@ -90,28 +94,36 @@ def update_volunteer(
         raise ValueError("Email já cadastrado")
     
     # Preparar dados para atualização
-    update_data = volunteer_update.dict(exclude_unset=True)
+    update_data = volunteer_update.model_dump(exclude_unset=True)
     
     # Atualizar no banco de dados
-    return db.update_volunteer(volunteer_id, **update_data)
+    updated_volunteer = db.update_volunteer(volunteer_id, **update_data)
+    if updated_volunteer:
+        return updated_volunteer.to_model()
+    
+    return None
 
 
 def delete_volunteer(db: database.FakeDatabase, volunteer_id: int) -> bool:
     """Exclui um voluntário (soft delete)"""
     # Verificar se o voluntário existe
-    existing_vol = get_volunteer(db, volunteer_id)
-    if not existing_vol:
+    existing_vol = db.get_volunteer(volunteer_id)
+    if not existing_vol or existing_vol.is_deleted:
         return False
     
     # Marcar como excluído
     return db.delete_volunteer(volunteer_id)
 
 
-def restore_volunteer(db: database.FakeDatabase, volunteer_id: int) -> Optional[models.Volunteer]:
+def restore_volunteer(db: database.FakeDatabase, volunteer_id: int) -> Optional[VolunteerModel]:
     """Restaura um voluntário excluído"""
     volunteer = db.get_volunteer(volunteer_id)
     if not volunteer:
         return None
     
     # Restaurar voluntário
-    return db.restore_volunteer(volunteer_id)
+    restored = db.restore_volunteer(volunteer_id)
+    if restored:
+        return restored.to_model()
+    
+    return None
