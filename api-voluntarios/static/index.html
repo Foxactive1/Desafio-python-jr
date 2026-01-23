@@ -1,1 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestão de Voluntários</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .disponibilidade-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      background-color: #e0f2fe;
+      color: #0369a1;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen p-4 md:p-6">
+  <div class="max-w-7xl mx-auto space-y-8">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900 flex items-center gap-3">
+          <i class="fas fa-hands-helping text-blue-600"></i>
+          Gestão de Voluntários
+        </h1>
+        <p class="text-gray-600 mt-2">Gerencie voluntários de forma eficiente com nosso sistema CRUD completo</p>
+      </div>
+      <div class="flex items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border">
+        <i class="fas fa-database text-blue-500"></i>
+        <div>
+          <p class="text-sm text-gray-500">Voluntários ativos</p>
+          <p id="contador" class="font-bold text-lg text-gray-800">Carregando...</p>
+        </div>
+      </div>
+    </header>
 
+    <!-- Filtros -->
+    <div class="bg-white p-5 rounded-2xl shadow-lg border">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+          <i class="fas fa-filter text-blue-600"></i>
+          Filtros Avançados
+        </h2>
+        <div class="flex gap-2">
+          <button id="btnLimparFiltros" class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+            <i class="fas fa-broom mr-1"></i> Limpar filtros
+          </button>
+          <button id="btnRecarregar" class="px-4 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition">
+            <i class="fas fa-sync-alt mr-1"></i> Recarregar
+          </button>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select id="filtroStatus" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            <option value="">Todos os status</option>
+            <option value="ativo">Ativo</option>
+            <option value="pendente">Pendente</option>
+            <option value="inativo">Inativo</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Disponibilidade</label>
+          <select id="filtroDisponibilidade" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            <option value="">Todas as disponibilidades</option>
+            <option value="manha">Manhã</option>
+            <option value="tarde">Tarde</option>
+            <option value="noite">Noite</option>
+            <option value="fim_de_semana">Fim de semana</option>
+            <option value="flexivel">Flexível</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+          <input id="filtroCargo" type="text" placeholder="Digite o cargo" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Busca por nome/email</label>
+          <div class="relative">
+            <input id="filtroBusca" type="text" placeholder="Buscar voluntários..." class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="bg-white p-6 rounded-2xl shadow-lg border fade-in">
+      <h2 class="text-xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+        <i class="fas fa-user-plus text-blue-600"></i>
+        <span id="formTitle">Cadastrar Novo Voluntário</span>
+      </h2>
+      
+      <form id="formVoluntario" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <input type="hidden" id="voluntarioId" />
+        
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Nome *</label>
+          <div class="relative">
+            <input id="nome" placeholder="Ex: João Silva" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required />
+            <i class="fas fa-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          </div>
+          <p class="text-xs text-gray-500">Mínimo 3 caracteres</p>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Email *</label>
+          <div class="relative">
+            <input id="email" type="email" placeholder="exemplo@email.com" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required />
+            <i class="fas fa-envelope absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          </div>
+          <p class="text-xs text-gray-500">Email válido requerido</p>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Telefone *</label>
+          <div class="relative">
+            <input id="telefone" placeholder="(11) 99999-9999" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required />
+            <i class="fas fa-phone absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          </div>
+          <p class="text-xs text-gray-500">Formato: (DDD) 99999-9999</p>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Cargo Pretendido *</label>
+          <div class="relative">
+            <input id="cargo" placeholder="Ex: Instrutor, Coordenador" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" required />
+            <i class="fas fa-briefcase absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+          </div>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Disponibilidade *</label>
+          <div class="relative">
+            <select id="disponibilidade" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none">
+              <option value="">Selecione uma opção</option>
+              <option value="manha">Manhã</option>
+              <option value="tarde">Tarde</option>
+              <option value="noite">Noite</option>
+              <option value="fim_de_semana">Fim de semana</option>
+              <option value="flexivel">Flexível</option>
+            </select>
+            <i class="fas fa-clock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+          </div>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="block text-sm font-medium text-gray-700">Status *</label>
+          <div class="relative">
+            <select id="status" class="w-full border border-gray-300 rounded-lg p-3 pl-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none">
+              <option value="pendente">Pendente</option>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+            <i class="fas fa-chart-line absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+          </div>
+        </div>
+        
+        <div class="md:col-span-2 lg:col-span-3 flex gap-3 pt-2">
+          <button type="submit" id="btnSalvar" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-indigo-600 hover:to-blue-600 text-white font-semibold rounded-xl px-6 py-3 shadow-lg transition-all duration-200 flex items-center gap-2">
+            <i class="fas fa-save"></i>
+            <span id="btnSalvarTexto">Salvar Voluntário</span>
+          </button>
+          <button type="button" id="btnCancelar" class="px-6 py-3 font-semibold rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition hidden">
+            <i class="fas fa-times mr-2"></i>Cancelar Edição
+          </button>
+          <button type="button" id="btnLimpar" class="px-6 py-3 font-semibold rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition">
+            <i class="fas fa-eraser mr-2"></i>Limpar Formulário
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Tabela de Voluntários -->
+    <div class="bg-white rounded-2xl shadow-lg border overflow-hidden fade-in">
+      <div class="px-6 py-4 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+          <i class="fas fa-users text-blue-600"></i>
+          Lista de Voluntários
+        </h2>
+        <div class="text-sm text-gray-600 flex items-center gap-2">
+          <i class="fas fa-info-circle text-blue-500"></i>
+          <span id="resultadosInfo">Carregando voluntários...</span>
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Voluntário</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Contato</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Cargo</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Disponibilidade</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Data de Inscrição</th>
+              <th class="px-6 py-4 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabela" class="bg-white divide-y divide-gray-200">
+            <!-- Dados carregados via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div id="tabelaVazia" class="hidden p-12 text-center">
+        <i class="fas fa-users-slash text-4xl text-gray-300 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-700 mb-2">Nenhum voluntário encontrado</h3>
+        <p class="text-gray-500">Tente ajustar os filtros ou cadastre um novo voluntário.</p>
+      </div>
+      
+      <div id="tabelaCarregando" class="p-12 text-center">
+        <div class="loading mx-auto mb-4"></div>
+        <p class="text-gray-600">Carregando voluntários...</p>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 space-y-3 z-50"></div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8000/voluntarios/';
+    let todosVoluntarios = [];
+    let modoEdicao = false;
+
+    // Formatação de datas
+    function formatarData(dataString) {
+      const data = new Date(dataString);
+      return data.toLocaleDateString('pt-BR');
+    }
+
+    // Formatação de telefone
+    function formatarTelefone(telefone) {
+      return telefone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    }
+
+    // Toast notifications
+    function mostrarToast(mensagem, tipo = 'sucesso') {
+      const cores = {
+        sucesso: 'bg-green-500 border-green-600',
+        erro: 'bg-red-500 border-red-600',
+        info: 'bg-blue-500 border-blue-600'
+      };
+      
+      const icones = {
+        sucesso: 'fa-check-circle',
+        erro: 'fa-exclamation-circle',
+        info: 'fa-info-circle'
+      };
+      
+      const toast = document.createElement('div');
+      toast.className = `${cores[tipo]} text-white px-5 py-3 rounded-xl shadow-lg border flex items-center gap-3 fade-in`;
+      toast.innerHTML = `
+        <i class="fas ${icones[tipo]}"></i>
+        <span>${mensagem}</span>
+      `;
+      
+      document.getElementById('toastContainer').appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Carregar voluntários
+    async function carregarVoluntarios() {
+      const tabela = document.getElementById('tabela');
+      const tabelaVazia = document.getElementById('tabelaVazia');
+      const tabelaCarregando = document.getElementById('tabelaCarregando');
+      
+      tabela.innerHTML = '';
+      tabelaCarregando.classList.remove('hidden');
+      tabelaVazia.classList.add('hidden');
+      
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error('Erro ao carregar dados');
+        
+        todosVoluntarios = await res.json();
+        filtrarETabela();
+        atualizarContador();
+        tabelaCarregando.classList.add('hidden');
+      } catch (erro) {
+        console.error('Erro:', erro);
+        mostrarToast('Erro ao carregar voluntários', 'erro');
+        tabelaCarregando.classList.add('hidden');
+        tabelaVazia.classList.remove('hidden');
+      }
+    }
+
+    // Filtrar e mostrar tabela
+    function filtrarETabela() {
+      const filtroStatus = document.getElementById('filtroStatus').value;
+      const filtroDisponibilidade = document.getElementById('filtroDisponibilidade').value;
+      const filtroCargo = document.getElementById('filtroCargo').value.toLowerCase();
+      const filtroBusca = document.getElementById('filtroBusca').value.toLowerCase();
+      
+      const voluntariosFiltrados = todosVoluntarios.filter(v => {
+        if (v.is_deleted) return false;
+        if (filtroStatus && v.status !== filtroStatus) return false;
+        if (filtroDisponibilidade && v.disponibilidade !== filtroDisponibilidade) return false;
+        if (filtroCargo && !v.cargo_pretendido.toLowerCase().includes(filtroCargo)) return false;
+        if (filtroBusca && !v.nome.toLowerCase().includes(filtroBusca) && !v.email.toLowerCase().includes(filtroBusca)) return false;
+        return true;
+      });
+      
+      const tabela = document.getElementById('tabela');
+      const tabelaVazia = document.getElementById('tabelaVazia');
+      
+      tabela.innerHTML = '';
+      
+      if (voluntariosFiltrados.length === 0) {
+        tabelaVazia.classList.remove('hidden');
+        document.getElementById('resultadosInfo').textContent = 'Nenhum voluntário encontrado';
+        return;
+      }
+      
+      tabelaVazia.classList.add('hidden');
+      document.getElementById('resultadosInfo').textContent = 
+        `${voluntariosFiltrados.length} voluntário${voluntariosFiltrados.length !== 1 ? 's' : ''} encontrado${voluntariosFiltrados.length !== 1 ? 's' : ''}`;
+      
+      voluntariosFiltrados.forEach(v => {
+        const statusCores = {
+          ativo: 'bg-green-100 text-green-800',
+          pendente: 'bg-yellow-100 text-yellow-800',
+          inativo: 'bg-gray-100 text-gray-800'
+        };
+        
+        const disponibilidadeTexto = {
+          manha: 'Manhã',
+          tarde: 'Tarde',
+          noite: 'Noite',
+          fim_de_semana: 'Fim de semana',
+          flexivel: 'Flexível'
+        };
+        
+        const statusIcones = {
+          ativo: 'fa-check-circle',
+          pendente: 'fa-clock',
+          inativo: 'fa-pause-circle'
+        };
+        
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 transition-colors';
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <i class="fas fa-user text-blue-600"></i>
+              </div>
+              <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">${v.nome}</div>
+                <div class="text-sm text-gray-500">ID: ${v.id}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${v.email}</div>
+            <div class="text-sm text-gray-500">${formatarTelefone(v.telefone.replace(/\D/g, ''))}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="text-sm font-medium text-gray-900">${v.cargo_pretendido}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="disponibilidade-badge">${disponibilidadeTexto[v.disponibilidade] || v.disponibilidade}</span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="status-badge ${statusCores[v.status]}">
+              <i class="fas ${statusIcones[v.status]}"></i>
+              ${v.status.charAt(0).toUpperCase() + v.status.slice(1)}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${formatarData(v.data_inscricao)}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <div class="flex gap-2">
+              <button onclick='editarVoluntario(${JSON.stringify(v).replace(/'/g, "\\'")})' class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 transition font-medium flex items-center gap-1">
+                <i class="fas fa-edit text-xs"></i> Editar
+              </button>
+              <button onclick='excluirVoluntario(${v.id})' class="px-3 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 transition font-medium flex items-center gap-1">
+                <i class="fas fa-trash-alt text-xs"></i> Excluir
+              </button>
+            </div>
+          </td>
+        `;
+        tabela.appendChild(row);
+      });
+    }
+
+    // Atualizar contador
+    function atualizarContador() {
+      const ativos = todosVoluntarios.filter(v => !v.is_deleted && v.status === 'ativo').length;
+      const total = todosVoluntarios.filter(v => !v.is_deleted).length;
+      document.getElementById('contador').innerHTML = `${ativos} ativo${ativos !== 1 ? 's' : ''} / ${total} total`;
+    }
+
+    // Editar voluntário
+    function editarVoluntario(v) {
+      modoEdicao = true;
+      
+      document.getElementById('voluntarioId').value = v.id;
+      document.getElementById('nome').value = v.nome;
+      document.getElementById('email').value = v.email;
+      document.getElementById('telefone').value = v.telefone;
+      document.getElementById('cargo').value = v.cargo_pretendido;
+      document.getElementById('disponibilidade').value = v.disponibilidade;
+      document.getElementById('status').value = v.status;
+      
+      document.getElementById('formTitle').innerHTML = `<i class="fas fa-user-edit text-blue-600"></i> Editando: ${v.nome}`;
+      document.getElementById('btnSalvarTexto').textContent = 'Atualizar Voluntário';
+      document.getElementById('btnCancelar').classList.remove('hidden');
+      
+      document.getElementById('nome').focus();
+      mostrarToast(`Editando voluntário: ${v.nome}`, 'info');
+    }
+
+    // Excluir voluntário
+    async function excluirVoluntario(id) {
+      if (!confirm('Tem certeza que deseja excluir este voluntário?\nEsta ação pode ser revertida na API.')) return;
+      
+      try {
+        const btnSalvar = document.getElementById('btnSalvar');
+        const textoOriginal = btnSalvar.innerHTML;
+        btnSalvar.innerHTML = '<div class="loading"></div> Excluindo...';
+        btnSalvar.disabled = true;
+        
+        const res = await fetch(API + id, { method: 'DELETE' });
+        
+        if (!res.ok) throw new Error('Erro ao excluir');
+        
+        mostrarToast('Voluntário excluído com sucesso', 'sucesso');
+        await carregarVoluntarios();
+        
+        btnSalvar.innerHTML = textoOriginal;
+        btnSalvar.disabled = false;
+      } catch (erro) {
+        console.error('Erro:', erro);
+        mostrarToast('Erro ao excluir voluntário', 'erro');
+      }
+    }
+
+    // Formatar telefone enquanto digita
+    document.getElementById('telefone').addEventListener('input', function(e) {
+      let value = e.target.value.replace(/\D/g, '');
+      
+      if (value.length > 10) {
+        value = value.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+      } else if (value.length > 6) {
+        value = value.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+      } else if (value.length > 2) {
+        value = value.replace(/^(\d{2})(\d{0,5}).*/, '($1) $2');
+      } else if (value.length > 0) {
+        value = value.replace(/^(\d{0,2}).*/, '($1');
+      }
+      
+      e.target.value = value;
+    });
+
+    // Enviar formulário
+    document.getElementById('formVoluntario').onsubmit = async function(e) {
+      e.preventDefault();
+      
+      const id = document.getElementById('voluntarioId').value;
+      const btnSalvar = document.getElementById('btnSalvar');
+      const textoOriginal = btnSalvar.innerHTML;
+      
+      // Validações básicas
+      if (!document.getElementById('nome').value.trim()) {
+        mostrarToast('O nome é obrigatório', 'erro');
+        return;
+      }
+      
+      if (!document.getElementById('email').value.includes('@')) {
+        mostrarToast('Email inválido', 'erro');
+        return;
+      }
+      
+      if (!document.getElementById('disponibilidade').value) {
+        mostrarToast('Selecione uma disponibilidade', 'erro');
+        return;
+      }
+      
+      const payload = {
+        nome: document.getElementById('nome').value.trim(),
+        email: document.getElementById('email').value.trim().toLowerCase(),
+        telefone: document.getElementById('telefone').value,
+        cargo_pretendido: document.getElementById('cargo').value.trim(),
+        disponibilidade: document.getElementById('disponibilidade').value,
+        status: document.getElementById('status').value
+      };
+      
+      const options = {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      };
+      
+      try {
+        btnSalvar.innerHTML = '<div class="loading"></div> Salvando...';
+        btnSalvar.disabled = true;
+        
+        const url = id ? API + id : API;
+        const res = await fetch(url, options);
+        
+        if (!res.ok) {
+          const erro = await res.json();
+          throw new Error(erro.detail || 'Erro na requisição');
+        }
+        
+        const acao = id ? 'atualizado' : 'cadastrado';
+        mostrarToast(`Voluntário ${acao} com sucesso!`, 'sucesso');
+        
+        // Limpar formulário
+        document.getElementById('formVoluntario').reset();
+        document.getElementById('voluntarioId').value = '';
+        document.getElementById('btnCancelar').classList.add('hidden');
+        document.getElementById('formTitle').innerHTML = '<i class="fas fa-user-plus text-blue-600"></i> Cadastrar Novo Voluntário';
+        document.getElementById('btnSalvarTexto').textContent = 'Salvar Voluntário';
+        modoEdicao = false;
+        
+        await carregarVoluntarios();
+      } catch (erro) {
+        console.error('Erro:', erro);
+        mostrarToast(erro.message || 'Erro ao salvar voluntário', 'erro');
+      } finally {
+        btnSalvar.innerHTML = textoOriginal;
+        btnSalvar.disabled = false;
+      }
+    };
+
+    // Cancelar edição
+    document.getElementById('btnCancelar').addEventListener('click', function() {
+      document.getElementById('formVoluntario').reset();
+      document.getElementById('voluntarioId').value = '';
+      this.classList.add('hidden');
+      document.getElementById('formTitle').innerHTML = '<i class="fas fa-user-plus text-blue-600"></i> Cadastrar Novo Voluntário';
+      document.getElementById('btnSalvarTexto').textContent = 'Salvar Voluntário';
+      modoEdicao = false;
+      mostrarToast('Edição cancelada', 'info');
+    });
+
+    // Limpar formulário
+    document.getElementById('btnLimpar').addEventListener('click', function() {
+      if (modoEdicao && !confirm('Deseja cancelar a edição e limpar o formulário?')) return;
+      
+      document.getElementById('formVoluntario').reset();
+      document.getElementById('voluntarioId').value = '';
+      document.getElementById('btnCancelar').classList.add('hidden');
+      document.getElementById('formTitle').innerHTML = '<i class="fas fa-user-plus text-blue-600"></i> Cadastrar Novo Voluntário';
+      document.getElementById('btnSalvarTexto').textContent = 'Salvar Voluntário';
+      modoEdicao = false;
+      mostrarToast('Formulário limpo', 'info');
+    });
+
+    // Limpar filtros
+    document.getElementById('btnLimparFiltros').addEventListener('click', function() {
+      document.getElementById('filtroStatus').value = '';
+      document.getElementById('filtroDisponibilidade').value = '';
+      document.getElementById('filtroCargo').value = '';
+      document.getElementById('filtroBusca').value = '';
+      filtrarETabela();
+      mostrarToast('Filtros limpos', 'info');
+    });
+
+    // Recarregar dados
+    document.getElementById('btnRecarregar').addEventListener('click', function() {
+      carregarVoluntarios();
+      mostrarToast('Dados recarregados', 'info');
+    });
+
+    // Aplicar filtros em tempo real
+    ['filtroStatus', 'filtroDisponibilidade', 'filtroCargo', 'filtroBusca'].forEach(id => {
+      document.getElementById(id).addEventListener('change', filtrarETabela);
+      if (id === 'filtroCargo' || id === 'filtroBusca') {
+        document.getElementById(id).addEventListener('input', filtrarETabela);
+      }
+    });
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function() {
+      carregarVoluntarios();
+      mostrarToast('Sistema carregado com sucesso!', 'sucesso');
+      
+      // Verificar se a API está acessível
+      fetch(API).then(res => {
+        if (!res.ok) {
+          mostrarToast('API não está respondendo. Verifique se o servidor está rodando.', 'erro');
+        }
+      }).catch(() => {
+        mostrarToast('Não foi possível conectar à API. Certifique-se de que o servidor está rodando na porta 8000.', 'erro');
+      });
+    });
+    // Verificar se a API está acessível
+async function verificarAPI() {
+  try {
+    const res = await fetch(API);
+    if (!res.ok) {
+      mostrarToast('API não está respondendo. Status: ' + res.status, 'erro');
+    } else {
+      console.log('API conectada com sucesso');
+    }
+  } catch (erro) {
+    mostrarToast('Não foi possível conectar à API. Certifique-se de que o servidor está rodando na porta 8000.', 'erro');
+    console.error('Erro de conexão:', erro);
+  }
+}
+
+// Na inicialização, substitua a verificação simples por:
+document.addEventListener('DOMContentLoaded', async function() {
+  await verificarAPI();
+  await carregarVoluntarios();
+  mostrarToast('Sistema carregado com sucesso!', 'sucesso');
+});
+  </script>
+</body>
+</html>
