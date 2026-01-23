@@ -1,0 +1,507 @@
+# ============================================================
+# API de Gerenciamento de Voluntários - Especificação do Projeto
+# ============================================================
+
+project:
+  name: "Volunteer Management System"
+  version: "1.0.0"
+  description: "Sistema completo de gerenciamento de voluntários com API FastAPI e interface web moderna"
+  type: "fullstack"
+  status: "active"
+  created: "2024-01-22"
+  last_updated: "2024-01-22"
+
+metadata:
+  author: "Desenvolvedor"
+  repository_type: "monorepo"
+  license: "MIT"
+  keywords:
+    - "volunteer"
+    - "management"
+    - "fastapi"
+    - "python"
+    - "tailwind"
+    - "crud"
+    - "rest-api"
+
+architecture:
+  pattern: "MVC"
+  layers:
+    - "presentation"   # Frontend HTML/CSS/JS
+    - "application"    # FastAPI endpoints
+    - "business"       # CRUD operations
+    - "data"          # In-memory database
+  components:
+    frontend:
+      name: "Volunteer Management Dashboard"
+      type: "static-website"
+      technologies:
+        - "HTML5"
+        - "JavaScript (ES6)"
+        - "Tailwind CSS"
+        - "Font Awesome"
+      features:
+        - "Responsive design"
+        - "Real-time filtering"
+        - "Form validation"
+        - "Toast notifications"
+        - "Auto-formatting"
+    
+    backend:
+      name: "Volunteer API"
+      type: "rest-api"
+      framework: "FastAPI"
+      version: "0.104.1"
+      features:
+        - "Auto-documentation"
+        - "CORS enabled"
+        - "Validation"
+        - "Soft delete"
+        - "Filtering & pagination"
+
+tech_stack:
+  backend:
+    language: "Python 3.9+"
+    framework: "FastAPI"
+    dependencies:
+      core:
+        - "fastapi==0.104.1"
+        - "uvicorn[standard]==0.24.0"
+        - "pydantic==2.5.0"
+      development:
+        - "pytest"
+        - "httpx"
+  
+  frontend:
+    html: "HTML5"
+    css: "Tailwind CSS (CDN)"
+    javascript: "Vanilla ES6"
+    icons: "Font Awesome 6"
+    fonts: "Google Fonts (Inter)"
+
+file_structure:
+  root: "volunteer-management/"
+  directories:
+    - "backend/"
+    - "frontend/"
+    - "docs/"
+    - "tests/"
+  
+  backend_files:
+    main: "main.py"
+    models: "models.py"
+    schemas: "schemas.py"
+    crud: "crud.py"
+    database: "database.py"
+    dependencies: "dependencies.py"
+    requirements: "requirements.txt"
+    runner: "run.py"
+  
+  frontend_files:
+    main: "index.html"
+    styles: "style.css"
+    scripts: "script.js"
+    assets: "assets/"
+  
+  config_files:
+    - "README.md"
+    - "LICENSE"
+    - ".gitignore"
+    - "pyproject.toml"
+    - "docker-compose.yml"
+
+api_specification:
+  base_url: "http://localhost:8000"
+  version: "v1"
+  endpoints:
+    root:
+      path: "/"
+      method: "GET"
+      description: "API root with endpoints overview"
+    
+    health:
+      path: "/health"
+      method: "GET"
+      description: "Health check endpoint"
+    
+    volunteers_list:
+      path: "/voluntarios/"
+      method: "GET"
+      description: "List volunteers with filtering"
+      query_params:
+        - name: "skip"
+          type: "integer"
+          default: 0
+          description: "Pagination offset"
+        
+        - name: "limit"
+          type: "integer"
+          default: 100
+          description: "Pagination limit (max 1000)"
+        
+        - name: "cargo_pretendido"
+          type: "string"
+          optional: true
+          description: "Filter by desired position"
+        
+        - name: "disponibilidade"
+          type: "enum"
+          values: ["manha", "tarde", "noite", "fim_de_semana", "flexivel"]
+          optional: true
+          description: "Filter by availability"
+        
+        - name: "status"
+          type: "enum"
+          values: ["ativo", "inativo", "pendente"]
+          optional: true
+          description: "Filter by status"
+    
+    volunteer_create:
+      path: "/voluntarios/"
+      method: "POST"
+      description: "Create new volunteer"
+      request_body:
+        content_type: "application/json"
+        schema_ref: "VolunteerCreate"
+    
+    volunteer_detail:
+      path: "/voluntarios/{id}"
+      method: "GET"
+      description: "Get volunteer by ID"
+      path_params:
+        - name: "id"
+          type: "integer"
+          required: true
+    
+    volunteer_update:
+      path: "/voluntarios/{id}"
+      method: "PUT"
+      description: "Update volunteer"
+      path_params:
+        - name: "id"
+          type: "integer"
+          required: true
+      request_body:
+        content_type: "application/json"
+        schema_ref: "VolunteerUpdate"
+    
+    volunteer_delete:
+      path: "/voluntarios/{id}"
+      method: "DELETE"
+      description: "Soft delete volunteer"
+      path_params:
+        - name: "id"
+          type: "integer"
+          required: true
+    
+    volunteer_restore:
+      path: "/voluntarios/{id}/restore"
+      method: "POST"
+      description: "Restore deleted volunteer"
+      path_params:
+        - name: "id"
+          type: "integer"
+          required: true
+
+data_models:
+  Volunteer:
+    description: "Main volunteer entity"
+    attributes:
+      id:
+        type: "integer"
+        required: true
+        description: "Unique identifier"
+      
+      nome:
+        type: "string"
+        required: true
+        min_length: 1
+        max_length: 100
+        description: "Full name"
+      
+      email:
+        type: "string"
+        required: true
+        format: "email"
+        unique: true
+        description: "Email address"
+      
+      telefone:
+        type: "string"
+        required: true
+        min_length: 10
+        max_length: 20
+        description: "Phone number"
+      
+      cargo_pretendido:
+        type: "string"
+        required: true
+        min_length: 1
+        max_length: 100
+        description: "Desired position"
+      
+      disponibilidade:
+        type: "enum"
+        values: ["manha", "tarde", "noite", "fim_de_semana", "flexivel"]
+        required: true
+        description: "Availability schedule"
+      
+      status:
+        type: "enum"
+        values: ["ativo", "inativo", "pendente"]
+        default: "pendente"
+        description: "Volunteer status"
+      
+      data_inscricao:
+        type: "date"
+        required: true
+        default: "current_date"
+        description: "Registration date"
+      
+      is_deleted:
+        type: "boolean"
+        default: false
+        description: "Soft delete flag"
+
+enums:
+  Disponibilidade:
+    description: "Availability time slots"
+    values:
+      MANHA: "manha"
+      TARDE: "tarde"
+      NOITE: "noite"
+      FIM_SEMANA: "fim_de_semana"
+      FLEXIVEL: "flexivel"
+  
+  StatusVoluntario:
+    description: "Volunteer status options"
+    values:
+      ATIVO: "ativo"
+      INATIVO: "inativo"
+      PENDENTE: "pendente"
+
+dependencies_tree:
+  backend:
+    fastapi:
+      version: "0.104.1"
+      purpose: "Web framework"
+    
+    uvicorn:
+      version: "0.24.0"
+      purpose: "ASGI server"
+    
+    pydantic:
+      version: "2.5.0"
+      purpose: "Data validation"
+  
+  frontend:
+    tailwindcss:
+      version: "3.3.0"
+      purpose: "CSS framework"
+    
+    font-awesome:
+      version: "6.4.0"
+      purpose: "Icons"
+    
+    google-fonts:
+      font: "Inter"
+      purpose: "Typography"
+
+development_workflow:
+  setup:
+    - "Create virtual environment"
+    - "Install dependencies"
+    - "Run database initialization"
+  
+  development:
+    backend:
+      command: "python run.py"
+      port: 8000
+      reload: true
+    
+    frontend:
+      command: "python -m http.server 5500"
+      port: 5500
+    
+  testing:
+    unit_tests: "pytest tests/unit/"
+    integration_tests: "pytest tests/integration/"
+    api_tests: "pytest tests/api/"
+  
+  deployment:
+    local: "Run both servers"
+    production:
+      - "Docker containerization"
+      - "Nginx reverse proxy"
+      - "Database migration"
+
+configuration:
+  environment_variables:
+    - name: "DATABASE_URL"
+      default: "memory"
+      description: "Database connection string"
+    
+    - name: "CORS_ORIGINS"
+      default: "http://localhost:5500,http://localhost:3000"
+      description: "Allowed CORS origins"
+    
+    - name: "LOG_LEVEL"
+      default: "INFO"
+      description: "Logging level"
+  
+  settings:
+    pagination:
+      default_limit: 100
+      max_limit: 1000
+    
+    validation:
+      email_domain_check: false
+      phone_format: "BR"
+    
+    security:
+      cors_enabled: true
+      rate_limiting: false
+
+features_matrix:
+  core_features:
+    - name: "CRUD Operations"
+      status: "implemented"
+      priority: "high"
+    
+    - name: "Filtering & Search"
+      status: "implemented"
+      priority: "high"
+    
+    - name: "Soft Delete"
+      status: "implemented"
+      priority: "medium"
+    
+    - name: "Form Validation"
+      status: "implemented"
+      priority: "high"
+  
+  ui_features:
+    - name: "Responsive Design"
+      status: "implemented"
+      priority: "high"
+    
+    - name: "Real-time Updates"
+      status: "implemented"
+      priority: "medium"
+    
+    - name: "Toast Notifications"
+      status: "implemented"
+      priority: "low"
+  
+  future_features:
+    - name: "Authentication"
+      status: "planned"
+      priority: "high"
+    
+    - name: "Export to CSV/PDF"
+      status: "planned"
+      priority: "medium"
+    
+    - name: "Dashboard Analytics"
+      status: "planned"
+      priority: "low"
+
+documentation:
+  api_docs:
+    swagger: "http://localhost:8000/docs"
+    redoc: "http://localhost:8000/redoc"
+  
+  code_docs:
+    backend: "Python docstrings"
+    frontend: "Inline comments"
+  
+  user_docs:
+    setup_guide: "README.md"
+    api_reference: "API endpoints documentation"
+
+testing:
+  test_coverage:
+    backend: "0%"
+    frontend: "0%"
+  
+  test_types:
+    - "Unit tests"
+    - "Integration tests"
+    - "API tests"
+    - "UI tests"
+  
+  test_frameworks:
+    backend: "pytest"
+    frontend: "Jest (planned)"
+
+deployment:
+  environments:
+    development:
+      backend_url: "http://localhost:8000"
+      frontend_url: "http://localhost:5500"
+    
+    production:
+      backend_url: "https://api.example.com"
+      frontend_url: "https://app.example.com"
+  
+  containerization:
+    docker_support: "planned"
+    docker_compose: "planned"
+  
+  cloud_providers:
+    - "AWS"
+    - "Google Cloud"
+    - "Azure"
+    - "Heroku"
+
+maintenance:
+  monitoring:
+    - "Health checks"
+    - "Error logging"
+    - "Performance metrics"
+  
+  backups:
+    database: "manual"
+    configuration: "git"
+  
+  updates:
+    frequency: "as needed"
+    process: "manual"
+
+contributing:
+  guidelines:
+    - "Fork the repository"
+    - "Create a feature branch"
+    - "Write tests for new features"
+    - "Update documentation"
+    - "Submit pull request"
+  
+  code_style:
+    backend: "PEP 8"
+    frontend: "ESLint (planned)"
+  
+  commit_convention: "Conventional Commits"
+
+license_info:
+  type: "MIT"
+  year: "2024"
+  permissions:
+    - "Commercial use"
+    - "Modification"
+    - "Distribution"
+    - "Private use"
+  conditions:
+    - "License and copyright notice"
+  limitations:
+    - "Liability"
+    - "Warranty"
+
+contact:
+  maintainer: "Desenvolvedor"
+  issues: "GitHub Issues"
+  discussions: "GitHub Discussions"
+  email: "developer@example.com"
+
+# ============================================================
+# End of Project Specification
+# ============================================================
